@@ -1,0 +1,69 @@
+from rest_framework import serializers
+from django.contrib.auth import authenticate, get_user_model
+from .models import *
+from django.contrib.auth.hashers import check_password
+
+User = get_user_model()
+
+
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ["email", "password", "confirm_password", "role"]
+
+    def validate(self, attrs):
+        email = attrs.get('email', '').lower()
+        password = attrs.get('password')
+        confirm_password = attrs.get('confirm_password')
+
+        # Email required
+        if not email:
+            raise serializers.ValidationError({"email": "Email is required"})
+
+        # Email already taken
+        if User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError({"email": "Email already registered"})
+
+        # Passwords must match
+        if password != confirm_password:
+            raise serializers.ValidationError({"confirm_password": "Passwords do not match"})
+
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop("confirm_password")  
+        password = validated_data.pop("password")
+        user = User.objects.create_user(password=password, **validated_data)
+        Profile.objects.create(user=user)
+        return user
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        # Authenticate the user using email and password
+        email = data.get('email', '').lower()
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError('Invalid email or password')
+        
+        
+        if not check_password(data['password'], user.password):
+            raise serializers.ValidationError('Invalid email or password')
+             
+        if user.is_active:
+            self.context['user'] = user
+            return data
+        
+        raise serializers.ValidationError('User account is disabled')
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = "__all__"
+        read_only_fields = ["user"]
