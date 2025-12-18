@@ -6,6 +6,8 @@ from .views import (
     LoginView,
     LogoutView,
     ProfileViewSet,
+    ChangePasswordView,
+    UserProfileView,
 )
 
 router = DefaultRouter()
@@ -16,6 +18,8 @@ urlpatterns = [
     path("verify-email/<str:token>/", VerifyEmailView.as_view(), name="verify-email"),
     path("login/", LoginView.as_view(), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),
+    path("change-password/", ChangePasswordView.as_view(), name="change-password"),
+    path("profile/", UserProfileView.as_view(), name="user-profile"),  # Singleton profile
 
     path("", include(router.urls)),
 ]

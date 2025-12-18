@@ -57,20 +57,25 @@ const RegisterWizard = ({ onSwitchToLogin }) => {
                 role: formData.role
             });
 
-            // 2. Login (if register doesn't return tokens, but usually it might or we auto-login)
-            // For now, let's assume we need to login or use tokens if returned.
-            // If backend returns tokens on register:
-            if (registerResponse.data.access) {
-                localStorage.setItem('accessToken', registerResponse.data.access);
-                localStorage.setItem('refreshToken', registerResponse.data.refresh);
+            // 2. Extract tokens from registration response
+            // Backend returns: { data: { tokens: { access, refresh } } }
+            const tokens = registerResponse.data.data?.tokens;
+            if (tokens?.access) {
+                localStorage.setItem('accessToken', tokens.access);
+                localStorage.setItem('refreshToken', tokens.refresh);
+                // Store user data for display
+                if (registerResponse.data.data?.user) {
+                    localStorage.setItem('user', JSON.stringify(registerResponse.data.data.user));
+                }
             } else {
-                // Explicit login if needed
+                // Explicit login if needed (fallback)
                 const loginResponse = await api.post('accounts/login/', {
                     email: formData.email,
                     password: formData.password
                 });
-                localStorage.setItem('accessToken', loginResponse.data.access);
-                localStorage.setItem('refreshToken', loginResponse.data.refresh);
+                const loginTokens = loginResponse.data.data?.tokens;
+                localStorage.setItem('accessToken', loginTokens.access);
+                localStorage.setItem('refreshToken', loginTokens.refresh);
             }
 
             // 3. Update Profile
@@ -193,6 +198,16 @@ const RegisterWizard = ({ onSwitchToLogin }) => {
                     >
                         {showPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
+                </div>
+                <div className="relative">
+                    <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                        type="password"
+                        placeholder="Confirm Password"
+                        value={formData.confirmPassword}
+                        onChange={(e) => updateFormData('confirmPassword', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:border-primary focus:outline-none transition-colors"
+                    />
                 </div>
 
                 {formData.role === 'client' && (

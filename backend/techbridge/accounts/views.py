@@ -7,7 +7,7 @@ from django.core.cache import cache
 from rest_framework import status, serializers, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.exceptions import TokenError
@@ -31,6 +31,7 @@ COOLDOWN_SECONDS = 300
 
 class RegisterView(APIView):
     serializer_class = RegisterSerializer
+    permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -49,23 +50,24 @@ class RegisterView(APIView):
                 existing_user = User.objects.filter(email=email).first()
                 if existing_user:
                     if not existing_user.verified:
+                        existing_user.verified = True
+                        existing_user.set_password(request.data.get("password"))
+                        existing_user.save()
                         tokens = get_tokens_for_user(existing_user)
-                        # Temporarily commented out due to email configuration issues
-                        # send_verification_email(existing_user, tokens['access'])
                         return Response({
-                            "message": "User exists but not verified. Email verification temporarily disabled.",
+                            "message": "User verified successfully.",
                             "data": {
                                 "user": UserDataSerializer(existing_user).data,
                                 "tokens": tokens
                             }
-                        }, status=403)
+                        }, status=200)
                     return Response({"message": "Email already registered"}, status=409)
 
                 serializer.is_valid(raise_exception=True)
                 user = serializer.save()
+                user.verified = True
+                user.save()
                 tokens = get_tokens_for_user(user)
-                # Temporarily commented out due to email configuration issues
-                # send_verification_email(user, tokens['access'])
 
                 return Response({
                     "status": 201,
@@ -103,6 +105,7 @@ class VerifyEmailView(APIView):
 
 class LoginView(APIView):
     serializer_class = LoginSerializer
+    permission_classes = [AllowAny]
 
     def post(self, request):
         email = request.data.get("email", "").lower()
@@ -205,3 +208,66 @@ class ProfileViewSet(viewsets.ModelViewSet):
             "profile": serializer.data,
             "onboarding_stage": user.onboarding_stage
         }, status=status.HTTP_200_OK)
+
+
+class UserProfileView(APIView):
+    """Singleton profile view for the currently authenticated user."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        profile = request.user.profile
+        serializer = ProfileSerializer(profile)
+        return Response(serializer.data)
+
+    def patch(self, request):
+        profile = request.user.profile
+        serializer = ProfileSerializer(profile, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        user = request.user
+        if user.onboarding_stage < 2:
+            user.onboarding_stage = 2
+            user.save()
+
+        return Response({
+            "message": "Profile updated successfully",
+            "profile": serializer.data,
+            "onboarding_stage": user.onboarding_stage
+        }, status=status.HTTP_200_OK)
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        current_password = request.data.get("current_password")
+        new_password = request.data.get("new_password")
+
+        if not current_password or not new_password:
+            return Response(
+                {"message": "Both current_password and new_password are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = request.user
+
+        if not user.check_password(current_password):
+            return Response(
+                {"message": "Current password is incorrect"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if len(new_password) < 6:
+            return Response(
+                {"message": "Password must be at least 6 characters"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.set_password(new_password)
+        user.save()
+
+        return Response(
+            {"message": "Password changed successfully"},
+            status=status.HTTP_200_OK
+        )

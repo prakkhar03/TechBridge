@@ -26,9 +26,15 @@ const LoginForm = ({ onSwitchToRegister }) => {
                 password: formData.password
             });
 
-            // Assuming backend returns { access: "token", refresh: "token" }
-            localStorage.setItem('accessToken', response.data.access);
-            localStorage.setItem('refreshToken', response.data.refresh);
+            // Backend returns { data: { tokens: { access, refresh } } }
+            const tokens = response.data.data?.tokens;
+            localStorage.setItem('accessToken', tokens.access);
+            localStorage.setItem('refreshToken', tokens.refresh);
+
+            // Store user data for display
+            if (response.data.data?.user) {
+                localStorage.setItem('user', JSON.stringify(response.data.data.user));
+            }
 
             navigate('/dashboard');
         } catch (err) {

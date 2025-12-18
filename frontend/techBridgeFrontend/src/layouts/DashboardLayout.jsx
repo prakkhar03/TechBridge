@@ -11,8 +11,8 @@ const SidebarItem = ({ icon: Icon, label, to, active, onClick }) => (
         to={to}
         onClick={onClick}
         className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${active
-                ? 'bg-primary text-white shadow-lg shadow-primary/25'
-                : 'text-gray-400 hover:bg-white/5 hover:text-white'
+            ? 'bg-primary text-white shadow-lg shadow-primary/25'
+            : 'text-gray-400 hover:bg-white/5 hover:text-white'
             }`}
     >
         <Icon className={`text-lg ${active ? 'text-white' : 'group-hover:text-white'}`} />
@@ -31,6 +31,12 @@ const DashboardLayout = ({ children }) => {
     const location = useLocation();
     const navigate = useNavigate();
 
+    // Get user from localStorage
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const fullName = user.profile?.full_name || user.email?.split('@')[0] || 'User';
+    const initials = fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U';
+    const role = user.role || 'student';
+
     const menuItems = [
         { icon: FaHome, label: 'Dashboard', to: '/dashboard' },
         { icon: FaClipboardList, label: 'Skill Assessment', to: '/assessment' },
@@ -41,7 +47,10 @@ const DashboardLayout = ({ children }) => {
     ];
 
     const handleLogout = () => {
-        // Clear auth tokens/state here
+        // Clear auth tokens and user data
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
         navigate('/auth');
     };
 
@@ -77,12 +86,12 @@ const DashboardLayout = ({ children }) => {
                 <div className="p-6 border-b border-white/10">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-sm font-bold">
-                            JD
+                            {initials}
                         </div>
                         <div>
-                            <h3 className="font-medium text-sm">John Doe</h3>
-                            <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
-                                Student
+                            <h3 className="font-medium text-sm">{fullName}</h3>
+                            <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 capitalize">
+                                {role}
                             </span>
                         </div>
                     </div>
