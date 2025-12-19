@@ -4,7 +4,9 @@ from .views import (
     ModuleDetailAPI,
     ModuleTestDetailAPI,
     SubmitModuleTestAPI,
-    RegenerateTestAPI
+    RegenerateTestAPI,
+    SearchLearningPathAPI,
+    UserLearningHistoryAPI
 )
 
 urlpatterns = [
@@ -13,4 +15,6 @@ urlpatterns = [
     path("<int:module_id>/test/", ModuleTestDetailAPI.as_view()),
     path("<int:module_id>/test/submit/", SubmitModuleTestAPI.as_view()),
     path("<int:module_id>/test/regenerate/", RegenerateTestAPI.as_view()),
+    path("search/", SearchLearningPathAPI.as_view()),
+    path("history/", UserLearningHistoryAPI.as_view()),
 ]

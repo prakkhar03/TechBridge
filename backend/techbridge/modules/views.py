@@ -18,7 +18,8 @@ from .services import (
 )
 from .gemini import (
     generate_module_content,
-    generate_test
+    generate_test,
+    generate_detailed_roadmap
 )
 
 
@@ -195,5 +196,60 @@ class RegenerateTestAPI(APIView):
                 "message": "New test generated successfully",
                 "test": ModuleTestSerializer(test).data
             },
+            status=status.HTTP_200_OK
+        )
+
+
+class SearchLearningPathAPI(APIView):
+    """API for searching and generating a detailed learning roadmap."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        topic = request.data.get("topic")
+        if not topic:
+            return Response(
+                {"error": "Topic is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Generate comprehensive content
+        content = generate_detailed_roadmap(topic)
+
+        # Determine difficulty based on learner profile
+        difficulty = "intermediate"
+        try:
+            profile = request.user.profile
+            difficulty = map_learning_level_to_difficulty(profile.learning_rate)
+        except Exception:
+            pass
+
+        # Save to database so user can revisit
+        module = LearningModule.objects.create(
+            user=request.user,
+            topic=topic,
+            difficulty=difficulty,
+            content=content
+        )
+
+        return Response(
+            {
+                "message": "Learning roadmap generated successfully",
+                "module": LearningModuleSerializer(module).data
+            },
+            status=status.HTTP_201_CREATED
+        )
+
+
+class UserLearningHistoryAPI(APIView):
+    """API to fetch user's previous learning path modules."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        modules = LearningModule.objects.filter(
+            user=request.user
+        ).order_by('-created_at')
+        
+        return Response(
+            LearningModuleSerializer(modules, many=True).data,
             status=status.HTTP_200_OK
         )

@@ -42,12 +42,11 @@ const Assessment = () => {
     const submitPersonalityTest = async () => {
         setLoading(true);
         try {
-            // Format answers for backend if needed, or send as is
-            // Assuming backend expects { answers: { question_id: option_id } } or similar
-            // Let's send a list of { question: id, selected_option: id }
+            // Format answers for backend
+            // Backend expects: { answers: [{ question_id: int, option_id: int }] }
             const formattedAnswers = Object.entries(answers).map(([qId, oId]) => ({
-                question: parseInt(qId),
-                selected_option: oId
+                question_id: parseInt(qId),
+                option_id: oId
             }));
 
             await api.post('analysis/submit/', { answers: formattedAnswers });
@@ -197,11 +196,15 @@ const Assessment = () => {
                     <div className="flex items-center gap-3 text-primary mb-2">
                         <FaBookOpen /> Learning Module
                     </div>
-                    <h1 className="text-3xl font-bold text-white capitalize">{generatedModule?.title}</h1>
+                    <h1 className="text-3xl font-bold text-white capitalize">{generatedModule?.module?.topic}</h1>
+                    <p className="text-gray-400 mt-2">Difficulty: {generatedModule?.module?.difficulty}</p>
                 </div>
 
                 <div className="p-8 prose prose-invert max-w-none">
-                    <div dangerouslySetInnerHTML={{ __html: generatedModule?.content }} />
+                    {/* Render content as preformatted text since it's markdown/plain text */}
+                    <div className="whitespace-pre-wrap text-gray-200 leading-relaxed">
+                        {generatedModule?.module?.content}
+                    </div>
                 </div>
 
                 <div className="p-8 border-t border-white/10 bg-white/5 flex justify-end">

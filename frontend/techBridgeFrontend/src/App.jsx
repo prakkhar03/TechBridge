@@ -12,6 +12,9 @@ import Footer from './components/Footer';
 import Auth from './pages/Auth';
 import StudentDashboard from './pages/StudentDashboard';
 import Assessment from './pages/Assessment';
+import Settings from './pages/Settings';
+import ProgressAnalytics from './pages/ProgressAnalytics';
+import LearningPath from './pages/LearningPath';
 
 const LandingPage = () => (
   <>
@@ -35,6 +38,9 @@ const App = () => {
         <Route path="/auth" element={<Auth />} />
         <Route path="/dashboard" element={<StudentDashboard />} />
         <Route path="/assessment" element={<Assessment />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/analytics" element={<ProgressAnalytics />} />
+        <Route path="/learning-path" element={<LearningPath />} />
       </Routes>
     </Router>
   );
